@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "preserved_on": "2026-10-15",
+  "repository": "https://github.com/Snet101/citation-hallucination-audit",
+  "baseline_commit": "e99aa094384fcc5d23085d64a3bc2fc99c167f2f",
+  "scope": "All tracked files before step-1 documentation edits; no experiment rerun",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 6926,
+      "sha256": "426a956fc9180c3ef81080d04499d658f719b3a1f1f803c4e52a3d8621514883"
+    },
+    {
+      "path": "analysis/bootstrap_metrics.py",
+      "bytes": 3090,
+      "sha256": "d24e298e291c1528925c129a24ec93bf19843676e4934d230beeaee563398040"
+    },
+    {
+      "path": "analysis/plot_hallucination_rates.py",
+      "bytes": 722,
+      "sha256": "28bbf92d6fd1470344af927ac1d4be0cd18aa55228e2c06c01ec494fbc70f226"
+    },
+    {
+      "path": "analysis/summarize_citation_rates.py",
+      "bytes": 482,
+      "sha256": "d4c5b66ed06859ee29068c14d90933c6ddf9a6644fa7bd853ac169cc102ab416"
+    },
+    {
+      "path": "artifacts/corrected_completions.jsonl",
+      "bytes": 567402,
+      "sha256": "d5a314036cb2ace8de69c584ddbd173c805375a972b45762a2bd86adb5fb49f8"
+    },
+    {
+      "path": "artifacts/hal_summary_fineweb_final.csv",
+      "bytes": 190,
+      "sha256": "5ad0a1cd02c653757301166960878bca86ff6f419cd1f4702407b1644f7fbcb1"
+    },
+    {
+      "path": "artifacts/prompts_manifest.csv",
+      "bytes": 1088663,
+      "sha256": "703b85ef8076a430db9a9598640842d7144da0271aadc8ccc06cf92604ad96fa"
+    },
+    {
+      "path": "artifacts/tinyllama_completions.jsonl",
+      "bytes": 227334,
+      "sha256": "351fb389515463eca510ada45d644c29f04f763e2a7333e8f910e5ae723842e4"
+    },
+    {
+      "path": "artifacts/unsupported.jsonl",
+      "bytes": 44650,
+      "sha256": "204b895056980bb3ff772d62f25c7117c9a05bbfd875c3c77e5452826972d75a"
+    },
+    {
+      "path": "artifacts/unsupported_with_context.jsonl",
+      "bytes": 276028,
+      "sha256": "c744200df21506a37cf3f8a8d8c26ed7794c68493bdfc73af3ed9c4c37b4de1a"
+    },
+    {
+      "path": "artifacts/verification_results.jsonl",
+      "bytes": 261184,
+      "sha256": "8ed15905b372ed24b769450dcdb2f743274d8c5ff758e8faa3f6f36c0cce9576"
+    },
+    {
+      "path": "citation_hallucination_audit.pdf",
+      "bytes": 443782,
+      "sha256": "58a62947a4681100509ff177eb7a44386e744609615633f6394a0d1d27519904"
+    },
+    {
+      "path": "src/build_manifest.py",
+      "bytes": 1583,
+      "sha256": "3db5cdb51376856d81f30ef6868e9c9a2fbe557c101801d86aca47d1f8f0deae"
+    },
+    {
+      "path": "src/extractcitations.py",
+      "bytes": 1308,
+      "sha256": "36c8207d5bb69e69eed654ae9c56e1f95dfa0eaf4aba397983dc724c3cc10ea3"
+    },
+    {
+      "path": "src/final_reverify.py",
+      "bytes": 1206,
+      "sha256": "2dad63cfcd863a859ebc66a8cd954c08100cfc147104c621da3c9f99940d397f"
+    },
+    {
+      "path": "src/rag_correct.py",
+      "bytes": 1247,
+      "sha256": "3ba8a9989414eecd46074aaa388ecdae7549fb224f826a833633d3d7c13a1464"
+    },
+    {
+      "path": "src/retrieve_context.py",
+      "bytes": 1162,
+      "sha256": "81717e7765298e56dc6743bfec177e17f8872c1fa3feb33621056275c150b2c5"
+    },
+    {
+      "path": "src/reverify_corrected.py",
+      "bytes": 2022,
+      "sha256": "45032ad088eaa9263ebc96d4e5dcdc992d475063871efd782b43961b16bc36b7"
+    },
+    {
+      "path": "src/run_inference.py",
+      "bytes": 1659,
+      "sha256": "88bdeebd250ef4a37f874f3c159dedeed9d5d62adee899ed49145eb1896a0099"
+    },
+    {
+      "path": "src/select_unsupported.py",
+      "bytes": 538,
+      "sha256": "746a46b63c5400b0abfab4e8f1619ccd59f0baa043697047104da9b053e03915"
+    },
+    {
+      "path": "src/verify_citations_fineweb.py",
+      "bytes": 4343,
+      "sha256": "c332f60f79372d77f1cbd09cf9d41db8b09be7ada2577ee22053f9f191011d72"
+    }
+  ]
+}

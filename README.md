@@ -1,242 +1,59 @@
 # Citation Hallucination Audit
 
-A reproducible pipeline for auditing citation hallucinations in **TinyLlama-1.1B-Chat** using regex-based citation detection, sentence embeddings, FAISS retrieval, and post-hoc retrieval-augmented generation (RAG).
+A collaborative TinyLlama citation-evaluation project containing historical model outputs, retrieval-verification code, and an experimental retrieval-augmented correction pipeline.
 
-This project evaluates whether citation-like language produced by a small open-source language model is actually grounded in retrievable evidence.
+> **Historical evaluation under review.** A code and artifact audit found duplicated observations, an expanding correction merge, stale correction labels, and evaluation-boundary problems. Previously reported percentages should not be interpreted as validated citation-fabrication rates or established RAG improvements. The historical files are preserved unchanged while repairs are developed. See [results review](docs/results-correction.md).
 
-## Overview
+## Project scope
 
-The experiment evaluates **250 harmful prompts from WildJailbreak**, each under two conditions:
+The intended experiment compares a neutral prompt with a version requesting sources, then extracts citation-like statements, retrieves related evidence with MiniLM/FAISS, and attempts a retrieval-augmented correction. Embedding similarity is a retrieval proxy; it does not prove that a cited source exists or supports a claim.
 
-1. **Neutral** — the original prompt
-2. **With Citation** — the same prompt with `"Please cite your sources."` appended
+## What the saved artifacts establish
 
-This produces **500 total model responses**.
+At baseline commit `e99aa094384fcc5d23085d64a3bc2fc99c167f2f`:
 
-Responses are generated locally with **TinyLlama-1.1B-Chat** using deterministic decoding.
+| Historical file | Saved rows | Distinct full records |
+|---|---:|---:|
+| `artifacts/tinyllama_completions.jsonl` | 500 | 250 |
+| `artifacts/verification_results.jsonl` | 500 | 250 |
+| `artifacts/corrected_completions.jsonl` | 78 | 39 |
 
-Citation-like sentences are then extracted and verified against a **10,000-document FineWeb-Edu retrieval corpus** using:
+The distinct baseline records represent 125 prompt IDs in two variants. The saved manifest and current manifest builder have different coverage. The repository does not currently establish a completed experiment with 250 distinct prompts and 500 independent responses.
 
-- `all-MiniLM-L6-v2` sentence embeddings
-- FAISS similarity search
-- cosine similarity threshold of **0.60**
+These observations describe the committed artifacts. They do not establish what additional original files or runs may have existed elsewhere.
 
-Responses without citation-like text, or whose citation-like statements do not meet the grounding threshold, are treated as unsupported under the strict evaluation protocol.
+## Current limitations
 
-## Pipeline
+- The final correction merge can multiply observations when both inputs contain repeated keys.
+- Correction generation retains the original support label; the final merge does not consume fresh per-answer correction judgments from the separate reverification step.
+- Saved generation fields include prompt text, and saved corrected fields include retrieved context. The present evaluation does not reliably isolate generated answer text.
+- Missing detected citations are counted as unsupported; that category is not equivalent to fabricated citations. One matching fragment can mark an entire answer supported.
+- Citation extraction differs across scripts, and the bootstrap entry point consumes aggregate summaries rather than paired prompt-level observations.
+- The exact historical retrieval corpus/index and a complete tested setup recipe are not available in this repository. Full historical reproduction has not been demonstrated.
 
-```text
-WildJailbreak prompts
-        ↓
-build_manifest.py
-        ↓
-250 prompts × 2 variants
-        ↓
-run_inference.py
-        ↓
-TinyLlama responses
-        ↓
-extractcitations.py
-        ↓
-citation-like statements
-        ↓
-verify_citations_fineweb.py
-        ↓
-MiniLM embeddings + FAISS retrieval
-        ↓
-supported / unsupported
-        ↓
-select_unsupported.py
-        ↓
-retrieve_context.py
-        ↓
-rag_correct.py
-        ↓
-retrieval-augmented regeneration
-        ↓
-reverify_corrected.py
-        ↓
-final_reverify.py
-        ↓
-final hallucination metrics
-```
-
-## Results
-
-Strict retrieval verification found very high citation hallucination rates:
-
-| Prompt Condition | Supported | Total | Unsupported | Hallucination Rate |
-|---|---:|---:|---:|---:|
-| Neutral | 6 | 250 | 244 | **97.6%** |
-| With Citation | 4 | 250 | 246 | **98.4%** |
-
-Requesting citations did not improve grounding. Under this evaluation, the citation-requested condition performed slightly worse.
-
-A post-hoc RAG correction was also tested. Unsupported responses were paired with retrieved evidence, regenerated using an instruction to rely only on those sources, and then evaluated again using the same verification procedure.
-
-The correction produced **less than a 1 percentage-point improvement** in strict hallucination rate.
-
-## Repository Structure
+## Repository contents
 
 ```text
-citation-hallucination-audit/
-│
-├── src/
-│   ├── build_manifest.py
-│   ├── run_inference.py
-│   ├── extractcitations.py
-│   ├── verify_citations_fineweb.py
-│   ├── select_unsupported.py
-│   ├── retrieve_context.py
-│   ├── rag_correct.py
-│   ├── reverify_corrected.py
-│   └── final_reverify.py
-│
-├── analysis/
-│   ├── bootstrap_metrics.py
-│   ├── summarize_citation_rates.py
-│   └── plot_hallucination_rates.py
-│
-├── artifacts/
-│   ├── prompts_manifest.csv
-│   ├── tinyllama_completions.jsonl
-│   ├── verification_results.jsonl
-│   ├── hal_summary_fineweb_FINAL.csv
-│   ├── unsupported.jsonl
-│   ├── unsupported_with_context.jsonl
-│   └── corrected_completions.jsonl
-│
-└── citation_hallucination_audit.pdf
+src/                              historical pipeline scripts
+analysis/                         historical analysis scripts
+artifacts/                        unchanged historical outputs and intermediate files
+docs/results-correction.md        findings, claim status, and repair criteria
+docs/baseline-manifest.json       SHA-256 hashes of the preserved baseline files
+citation_hallucination_audit.pdf  historical paper; findings are under review
 ```
 
-## Core Components
+The scripts are retained for inspection. A verified end-to-end quickstart will be added after the pipeline and environment are repaired; the current repository should not be described as fully reproducible.
 
-### Prompt Manifest Generation
+## Repair status
 
-`build_manifest.py`
+Step 1 preserves the baseline and corrects the public description. No model inference, artifact deduplication, evaluator repair, or new result computation is included in this step.
 
-Samples 250 harmful prompts from WildJailbreak and creates two versions of each:
+Next repairs will enforce unique evaluation identities, separate inputs/context from generated answers, persist fresh correction judgments, validate one-to-one merges, align detectors, and calculate uncertainty from paired prompt observations. Historical and newly generated results will remain distinguishable.
 
-- neutral
-- citation-requested
+## Historical paper
 
-A fixed random seed is used for reproducibility.
-
-### Model Inference
-
-`run_inference.py`
-
-Runs local text generation with:
-
-- **Model:** TinyLlama/TinyLlama-1.1B-Chat-v1.0
-- deterministic decoding
-- `do_sample=False`
-- `max_new_tokens=128`
-
-Generated responses and prompt metadata are stored as JSONL records.
-
-### Citation Extraction
-
-`extractcitations.py`
-
-Uses regular expressions to identify citation-like language including:
-
-- attribution phrases
-- author/year references
-- numbered citations
-- URLs
-- source statements
-
-### Retrieval-Based Verification
-
-`verify_citations_fineweb.py`
-
-Citation-like sentences are embedded using:
-
-```text
-sentence-transformers/all-MiniLM-L6-v2
-```
-
-The embeddings are compared against a FAISS index constructed from a FineWeb-Edu corpus.
-
-A statement is considered supported when its best retrieved match reaches:
-
-```text
-cosine similarity >= 0.60
-```
-
-The script produces per-response verification logs containing support labels and similarity scores.
-
-### Retrieval-Augmented Correction
-
-The mitigation pipeline consists of:
-
-```text
-select_unsupported.py
-        ↓
-retrieve_context.py
-        ↓
-rag_correct.py
-        ↓
-reverify_corrected.py
-```
-
-Unsupported responses are selected, relevant passages are retrieved through FAISS, and TinyLlama regenerates answers using instructions to rely only on the provided evidence.
-
-The corrected responses are then evaluated using the same grounding procedure.
-
-### Statistical Analysis
-
-`bootstrap_metrics.py`
-
-Computes bootstrap confidence intervals for hallucination rates.
-
-`plot_hallucination_rates.py`
-
-Visualizes hallucination rates across prompting conditions.
-
-`summarize_citation_rates.py`
-
-Aggregates citation-generation rates across experiment conditions.
-
-## Tech Stack
-
-- Python
-- Hugging Face Transformers
-- TinyLlama
-- SentenceTransformers
-- FAISS
-- pandas
-- NumPy
-- NLTK
-- matplotlib
-- seaborn
-- tqdm
-
-## Reproducibility
-
-The repository includes the experiment manifest, model outputs, verification logs, intermediate RAG artifacts, and final summary statistics.
-
-The FineWeb-Edu retrieval index itself is not included because of its size. The experiment used a **10,000-document FineWeb-Edu slice** embedded with `all-MiniLM-L6-v2`.
-
-## Limitations
-
-This is a focused audit rather than a general benchmark.
-
-- Only **TinyLlama-1.1B-Chat** was evaluated.
-- The final experiment uses the **vanilla-harmful** WildJailbreak subset.
-- FineWeb-Edu provides only partial coverage of possible source material.
-- A cosine-similarity threshold is a retrieval-based proxy for grounding rather than definitive factual verification.
-- Responses without detectable citation-like text are treated as unsupported under the strict evaluation protocol.
-- Results should not be generalized to larger or more capable language models.
-
-## Paper
-
-The full methodology, results, limitations, and discussion are available in:
-
-[`citation_hallucination_audit.pdf`](./citation_hallucination_audit.pdf)
+[`citation_hallucination_audit.pdf`](citation_hallucination_audit.pdf) is retained as a historical document. Its sample-size, headline-rate, and RAG-improvement claims are under review; retaining the PDF does not endorse those claims as validated results.
 
 ## Authors
 
-**Sanvi Nethikunta**  
-**Rithik Gumpu**
+Sanvi Nethikunta and Rithik Gumpu. Individual contribution details will be documented with the collaborators as the project is repaired.
