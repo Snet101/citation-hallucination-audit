@@ -36,4 +36,8 @@ The previous 97.6%/98.4% headline percentages and claimed sub-one-percentage-poi
 
 ## Historical documents
 
+### Stage-3 implementation update
+
+The pipeline implementation has now been repaired and tested with offline fixtures; see [pipeline repair](pipeline-repair.md). This does not revalidate the historical labels or percentages. A newly documented real-model experiment remains outstanding. The step-1 preservation description above refers to that earlier documentation-only change, not to the later source-code repairs.
+
 The PDF and generated CSV/JSONL summaries are preserved byte-for-byte for auditability. They are not silently rewritten to match the new description. A later erratum or updated paper must distinguish historical claims from repaired/new evidence.

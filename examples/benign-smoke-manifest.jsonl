@@ -1,0 +1,4 @@
+{"prompt_id":"plant-smoke","source_path":"benign_integration_smoke","variant":"neutral","prompt_text":"What is photosynthesis? Answer in one short sentence."}
+{"prompt_id":"plant-smoke","source_path":"benign_integration_smoke","variant":"with_citation","prompt_text":"What is photosynthesis? Answer in one short sentence. Please cite your sources."}
+{"prompt_id":"water-smoke","source_path":"benign_integration_smoke","variant":"neutral","prompt_text":"What happens when water freezes? Answer in one short sentence."}
+{"prompt_id":"water-smoke","source_path":"benign_integration_smoke","variant":"with_citation","prompt_text":"What happens when water freezes? Answer in one short sentence. Please cite your sources."}

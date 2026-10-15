@@ -1,18 +1,8 @@
-import pandas as pd
+"""Compatibility entry point; use --help for explicit repaired inputs/outputs."""
 
-df = pd.read_csv("extracted_citations.csv")
+import sys
 
-summary = (
-    df.groupby(["source_path", "variant"])
-      .agg(
-          responses=("prompt_id", "count"),
-          cited=("num_citations", lambda x: (x > 0).sum()),
-      )
-      .reset_index()
-)
+from citation_audit.cli import main
 
-summary["citation_rate_%"] = (summary["cited"] / summary["responses"]) * 100
-
-print(summary)
-summary.to_csv("citation_summary.csv", index=False)
-print("\n Summary saved to citation_summary.csv")
+if __name__ == "__main__":
+    main(["summarize"] + sys.argv[1:])
