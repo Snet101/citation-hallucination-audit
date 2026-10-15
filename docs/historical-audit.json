@@ -1,0 +1,26 @@
+{
+  "kind": "derived historical files; old labels not revalidated",
+  "files": {
+    "tinyllama_completions.jsonl": {
+      "input_sha256": "351fb389515463eca510ada45d644c29f04f763e2a7333e8f910e5ae723842e4",
+      "raw_rows": 500,
+      "unique_records": 250,
+      "identical_duplicates": 250,
+      "distinct_prompt_ids": 125
+    },
+    "verification_results.jsonl": {
+      "input_sha256": "8ed15905b372ed24b769450dcdb2f743274d8c5ff758e8faa3f6f36c0cce9576",
+      "raw_rows": 500,
+      "unique_records": 250,
+      "identical_duplicates": 250,
+      "distinct_prompt_ids": 125
+    },
+    "corrected_completions.jsonl": {
+      "input_sha256": "d5a314036cb2ace8de69c584ddbd173c805375a972b45762a2bd86adb5fb49f8",
+      "raw_rows": 78,
+      "unique_records": 39,
+      "identical_duplicates": 39,
+      "distinct_prompt_ids": 22
+    }
+  }
+}

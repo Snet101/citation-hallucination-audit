@@ -1,0 +1,6 @@
+{"prompt_id":"p0","source_path":"benign_fixture","variant":"neutral","prompt_text":"Which plant process uses sunlight?"}
+{"prompt_id":"p0","source_path":"benign_fixture","variant":"with_citation","prompt_text":"Which plant process uses sunlight? Please cite your sources."}
+{"prompt_id":"p1","source_path":"benign_fixture","variant":"neutral","prompt_text":"What happens when water is cooled?"}
+{"prompt_id":"p1","source_path":"benign_fixture","variant":"with_citation","prompt_text":"What happens when water is cooled? Please cite your sources."}
+{"prompt_id":"p2","source_path":"benign_fixture","variant":"neutral","prompt_text":"Where do birds live?"}
+{"prompt_id":"p2","source_path":"benign_fixture","variant":"with_citation","prompt_text":"Where do birds live? Please cite your sources."}

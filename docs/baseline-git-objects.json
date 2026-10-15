@@ -1,0 +1,63 @@
+{
+  "baseline_commit": "e99aa094384fcc5d23085d64a3bc2fc99c167f2f",
+  "scope": "historical artifacts and original PDF only",
+  "note": "Both exact original representations are retained; no historical content is rewritten.",
+  "files": [
+    {
+      "path": "artifacts/corrected_completions.jsonl",
+      "git_blob_oid": "ee2d5019c68d52af175386c4b43a18b409e27c8e",
+      "git_blob_sha256": "f680d67ff00b1a289225db0c336ddfc07deebdc6e9471ce442ab0372c9cdc261",
+      "windows_archive_sha256": "d5a314036cb2ace8de69c584ddbd173c805375a972b45762a2bd86adb5fb49f8",
+      "representations_differ_only_by_line_endings": true
+    },
+    {
+      "path": "artifacts/hal_summary_fineweb_final.csv",
+      "git_blob_oid": "0f76cde82a44fa5021995d77226cd34d978c3ae2",
+      "git_blob_sha256": "e2a7711609696832d21896ff35deda733fa202182d6812fe4abf91aa6e86b696",
+      "windows_archive_sha256": "5ad0a1cd02c653757301166960878bca86ff6f419cd1f4702407b1644f7fbcb1",
+      "representations_differ_only_by_line_endings": true
+    },
+    {
+      "path": "artifacts/prompts_manifest.csv",
+      "git_blob_oid": "4a4bf557d11a5b04a5aff5e62523ce3a924be07e",
+      "git_blob_sha256": "703b85ef8076a430db9a9598640842d7144da0271aadc8ccc06cf92604ad96fa",
+      "windows_archive_sha256": "703b85ef8076a430db9a9598640842d7144da0271aadc8ccc06cf92604ad96fa",
+      "representations_differ_only_by_line_endings": false
+    },
+    {
+      "path": "artifacts/tinyllama_completions.jsonl",
+      "git_blob_oid": "2dd928f9cfbd68131fc6131164494a0e9748ec23",
+      "git_blob_sha256": "2c44542075a0672a5ef9f3cafc0f553c3df480ff8eb7bdfc74c828d7629c58e4",
+      "windows_archive_sha256": "351fb389515463eca510ada45d644c29f04f763e2a7333e8f910e5ae723842e4",
+      "representations_differ_only_by_line_endings": true
+    },
+    {
+      "path": "artifacts/unsupported.jsonl",
+      "git_blob_oid": "0f8ad7e4c881d74f640bf420c60517eae5612a38",
+      "git_blob_sha256": "204b895056980bb3ff772d62f25c7117c9a05bbfd875c3c77e5452826972d75a",
+      "windows_archive_sha256": "204b895056980bb3ff772d62f25c7117c9a05bbfd875c3c77e5452826972d75a",
+      "representations_differ_only_by_line_endings": false
+    },
+    {
+      "path": "artifacts/unsupported_with_context.jsonl",
+      "git_blob_oid": "592167cc601cd106bba4e3f981e879d0d336f364",
+      "git_blob_sha256": "c744200df21506a37cf3f8a8d8c26ed7794c68493bdfc73af3ed9c4c37b4de1a",
+      "windows_archive_sha256": "c744200df21506a37cf3f8a8d8c26ed7794c68493bdfc73af3ed9c4c37b4de1a",
+      "representations_differ_only_by_line_endings": false
+    },
+    {
+      "path": "artifacts/verification_results.jsonl",
+      "git_blob_oid": "2e93c0d6560748862d8314207913a89b4d12951c",
+      "git_blob_sha256": "8ed15905b372ed24b769450dcdb2f743274d8c5ff758e8faa3f6f36c0cce9576",
+      "windows_archive_sha256": "8ed15905b372ed24b769450dcdb2f743274d8c5ff758e8faa3f6f36c0cce9576",
+      "representations_differ_only_by_line_endings": false
+    },
+    {
+      "path": "citation_hallucination_audit.pdf",
+      "git_blob_oid": "f53c9431ee1496287866315c18c3f7c2bd90db2d",
+      "git_blob_sha256": "58a62947a4681100509ff177eb7a44386e744609615633f6394a0d1d27519904",
+      "windows_archive_sha256": "58a62947a4681100509ff177eb7a44386e744609615633f6394a0d1d27519904",
+      "representations_differ_only_by_line_endings": false
+    }
+  ]
+}

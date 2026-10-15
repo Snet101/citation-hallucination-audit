@@ -1,0 +1,23 @@
+name: citation-pipeline
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  offline-checks:
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.lock.txt
+      - run: python -m pip install --no-deps --no-build-isolation -e .
+      - run: python -m pip check
+      - run: python -m ruff check .
+      - run: python -m pytest -q
+      - run: python scripts/check_preservation.py
+      - run: python -m citation_audit run --mode fixture --manifest tests/fixtures/manifest.jsonl --fixture-responses tests/fixtures/responses.jsonl --corpus tests/fixtures/corpus.jsonl --run-id ci-fixture --out runs/ci-fixture --threshold 0.95 --B 1000
+      - run: python scripts/check_fixture_run.py runs/ci-fixture
