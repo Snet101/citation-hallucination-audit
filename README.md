@@ -134,7 +134,3 @@ Each command has `--help`, requires a **new** `--out` directory, and records pro
 The original filenames under `src/` and `analysis/` are now thin CLI adapters; they have no import-time model loading, downloads, plotting, or output writes. They no longer silently read or overwrite the historical artifacts. Their arguments have changed; run them with `--help` after installing the package.
 
 Optional plotting: `python -m pip install -e ".[plots]"`, then `python -m citation_audit plot --input runs/fixture-demo/summary-before.json --out runs/fixture-plot`. Plot labels use explicit proxy metric names, not hallucination-rate labels.
-
-## Authors and review
-
-Sanvi Nethikunta and Rithik Gumpu. The repair was prepared with AI assistance; individual contribution claims should identify work each collaborator recognizes and can explain. Newly repaired code and tests are not presented as the original conference version. See [pipeline repair](docs/pipeline-repair.md) for design choices and validation limits.
