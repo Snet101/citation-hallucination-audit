@@ -2,6 +2,18 @@
 
 A collaborative citation-evaluation project with a repaired, inspectable generation/retrieval pipeline and preserved historical artifacts.
 
+## October 18 follow-up: reference association and correction guards (v0.3)
+
+The new pilot exposed remaining problems; see [the follow-up repair](docs/claim-association-repair.md). The evaluator now leaves unlinked bibliography entries **unresolved**, searches individual associated claims with citation markers removed, and never treats a bare reference URL as a factual claim. Explicit numbered bibliography entries can be linked to matching inline markers. This is conservative heuristic association, not source resolution or entailment.
+
+Model-mode indexing splits passages using the actual embedding tokenizer's token budget and preserves parent IDs and character offsets. Over-budget queries fail explicitly rather than being silently truncated. Old indexes must be rebuilt in a new directory.
+
+Correction attempts are always retained. Format artifacts, missing/lost requested citations, unresolved associations and near-cap outputs prevent promotion into the main before/after comparison. `attempted_after`, `correction_attempted`, `correction_accepted` and `rejection_reasons` preserve the disposition. Acceptance only means passing these guards; it never means factual correctness. Retaining an original answer does not endorse it. Generation diagnostics are saved; exact stop reasons are unavailable from the text-only adapter.
+
+`--correct-missing-citations` is an explicit opt-in on `run` and `select` for the citation-requested condition. It does not label uncited answers as hallucinations. The workflow remains citation-focused, not a general factuality checker.
+
+The v2 detector/evaluation schema and new encoder metadata intentionally reject old v1 evaluation logs/indexes. Preserve historical outputs and re-evaluate original answer text into fresh directories; do not edit old judgments. Unknown associations remain null. Full-cited-population proxy rates are null when any member is unevaluable, with explicit evaluable and unresolved counts; the separately named evaluable-only candidate rate must be read with its denominator.
+
 > **Historical research results remain under review.** The original files contain duplicated observations and were evaluated with flawed answer boundaries, correction merging, and statistics. The repair below passes software tests; it does not retroactively validate the historical percentages or establish new TinyLlama/RAG findings. Read [results correction](docs/results-correction.md) and [repair notes](docs/pipeline-repair.md).
 
 ## What is now implemented

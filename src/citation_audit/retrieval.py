@@ -10,6 +10,47 @@ import numpy as np
 from .core import digest, read_jsonl, write_json, write_jsonl
 
 
+def token_chunks(passages, token_count, limit):
+    """Split original character spans until every chunk fits the actual tokenizer."""
+    if limit < 4:
+        raise ValueError("Embedding token budget is too small")
+    output = []
+    for passage in passages:
+        text = passage["text"]
+        pending = [(0, len(text))]
+        spans = []
+        while pending:
+            start, end = pending.pop()
+            count = token_count(text[start:end])
+            if count <= limit:
+                if text[start:end].strip():
+                    spans.append((start, end, count))
+                continue
+            if end - start < 2:
+                raise ValueError("Cannot fit even one character in embedding budget")
+            middle = (start + end) // 2
+            spaces = list(re.finditer(r"\s+", text[start + 1 : middle]))
+            split = start + 1 + spaces[-1].end() if spaces else middle
+            pending.extend([(split, end), (start, split)])
+        for i, (start, end, count) in enumerate(spans):
+            output.append(
+                {
+                    **passage,
+                    "passage_id": passage["passage_id"]
+                    if len(spans) == 1
+                    else f"{passage['passage_id']}::chunk-{i}",
+                    "parent_passage_id": passage["passage_id"],
+                    "char_start": start,
+                    "char_end": end,
+                    "embedding_token_count": count,
+                    "text": text[start:end],
+                }
+            )
+    if len({p["passage_id"] for p in output}) != len(output):
+        raise ValueError("Chunk identity collision")
+    return output
+
+
 class FixtureEncoder:
     """Deterministic token-hash encoder for software tests, NOT semantic evidence."""
 
@@ -36,7 +77,9 @@ class SemanticEncoder:
             raise ValueError("Embedding revision must be an immutable 40-character commit hash")
         from sentence_transformers import SentenceTransformer
 
-        self.model = SentenceTransformer(model_id, revision=revision, trust_remote_code=False, device="cpu")
+        self.model = SentenceTransformer(
+            model_id, revision=revision, trust_remote_code=False, device="cpu"
+        )
         self.metadata = {
             "model_id": model_id,
             "revision": revision,
@@ -44,9 +87,18 @@ class SemanticEncoder:
             "max_seq_length": self.model.max_seq_length,
             "device": "cpu",
             "mode": "model",
+            "token_budget_policy": "reject-overflow-v1",
         }
 
+    def token_count(self, text):
+        return len(self.model.tokenizer.encode(text, add_special_tokens=True, truncation=False))
+
+    def chunk_passages(self, passages):
+        return token_chunks(passages, self.token_count, self.model.max_seq_length)
+
     def encode(self, texts):
+        if any(self.token_count(text) > self.model.max_seq_length for text in texts):
+            raise ValueError("Text exceeds embedding token budget; split it explicitly")
         return self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
 
 
@@ -74,6 +126,10 @@ def build_index(corpus_path, output, encoder):
         ids.append(passage["passage_id"])
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate passage IDs")
+    source_count = len(passages)
+    chunking = hasattr(encoder, "chunk_passages")
+    if chunking:
+        passages = encoder.chunk_passages(passages)
     vectors = normalized(
         encoder.encode([row["text"] for row in passages]), encoder.metadata["dimension"]
     )
@@ -91,6 +147,8 @@ def build_index(corpus_path, output, encoder):
         "index_type": "IndexFlatIP",
         "normalized": True,
         "count": len(passages),
+        "source_passage_count": source_count,
+        "chunking_policy": "token-budget-char-spans-v1" if chunking else "fixture-unchanged",
         "dimension": vectors.shape[1],
         "source_corpus_sha256": digest(corpus_path),
         "passages_sha256": digest(output / "passages.jsonl"),

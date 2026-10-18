@@ -11,9 +11,11 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .association import associate_candidates
+
 KEY = ("run_id", "source_path", "prompt_id", "variant")
 VARIANTS = {"neutral", "with_citation"}
-DETECTOR_VERSION = "structured-candidates-v1"
+DETECTOR_VERSION = "structured-candidates-v2-conservative-association"
 
 
 def digest(path):
@@ -203,7 +205,34 @@ def extract_candidates(text):
                     "claim_text": claim.strip(),
                 }
             )
-    return sorted(matches, key=lambda candidate: candidate["start"])
+    return associate_candidates(text, matches)
+
+
+def support_labels(flags):
+    """Three-valued proxies: unresolved associations remain unknown, not failures."""
+    if not flags:
+        return None, None
+    any_match = True if True in flags else (None if None in flags else False)
+    all_match = False if False in flags else (None if None in flags else True)
+    return any_match, all_match
+
+
+def generation_issues(text):
+    issues = []
+    if not text.strip():
+        issues.append("empty_answer")
+    if re.search(r"<\|(?:user|assistant|system|im_start|im_end)\|>|\[/?INST\]", text):
+        issues.append("conversation_role_marker")
+    if re.match(r"\s*(?:can you|could you|please)\s+provide\b", text, re.I):
+        issues.append("followup_request_heuristic")
+    return issues
+
+
+def claim_query(span):
+    query = span["text"]
+    for _, pattern in PATTERNS:
+        query = pattern.sub(" ", query)
+    return " ".join(query.split())
 
 
 def evaluate(rows, retriever, threshold=0.6, answer_field="answer_text"):
@@ -216,19 +245,36 @@ def evaluate(rows, retriever, threshold=0.6, answer_field="answer_text"):
         candidates = extract_candidates(answer)
         judgments = []
         for candidate in candidates:
-            evidence = retriever.search(candidate["claim_text"])
+            claims = []
+            for span in candidate["claim_spans"]:
+                query = claim_query(span)
+                evidence = retriever.search(query)
+                score = max((item["score"] for item in evidence), default=None)
+                claims.append(
+                    {
+                        "claim": span,
+                        "retrieval_query": query,
+                        "evidence": evidence,
+                        "max_cosine_similarity": score,
+                        "retrieval_match": score is not None and score >= threshold,
+                    }
+                )
+            evidence = [item for claim in claims for item in claim["evidence"]]
             score = max((item["score"] for item in evidence), default=None)
+            _, candidate_match = support_labels([claim["retrieval_match"] for claim in claims])
             judgments.append(
                 {
                     **candidate,
                     "evidence": evidence,
+                    "claim_evaluations": claims,
                     "max_cosine_similarity": score,
-                    "retrieval_match": score is not None and score >= threshold,
+                    "retrieval_match": candidate_match,
                     "source_exists": None,
                     "source_supports_claim": None,
                 }
             )
         matches = [item["retrieval_match"] for item in judgments]
+        any_match, all_match = support_labels(matches)
         evaluated.append(
             {
                 **row,
@@ -248,17 +294,31 @@ def evaluate(rows, retriever, threshold=0.6, answer_field="answer_text"):
                     )
                 ),
                 "citation_present": bool(candidates),
+                "generation_issues": generation_issues(answer),
                 "candidates": judgments,
-                "any_retrieval_support": any(matches) if matches else None,
-                "all_candidate_retrieval_support": all(matches) if matches else None,
+                "any_retrieval_support": any_match,
+                "all_candidate_retrieval_support": all_match,
             }
         )
     return evaluated
 
 
-def select_corrections(rows):
+def select_corrections(rows, *, include_missing=False):
     validate_evaluations(rows)
-    return [row for row in rows if row["all_candidate_retrieval_support"] is False]
+    selected = []
+    for row in rows:
+        reasons = []
+        if row["all_candidate_retrieval_support"] is False:
+            reasons.append("retrieval_mismatch")
+        if any(c["association_status"] == "unresolved" for c in row["candidates"]):
+            reasons.append("unresolved_claim_association")
+        if any(issue != "empty_answer" for issue in row["generation_issues"]):
+            reasons.append("generation_format_issue")
+        if include_missing and row["variant"] == "with_citation" and not row["citation_present"]:
+            reasons.append("requested_citation_missing")
+        if reasons:
+            selected.append({**row, "correction_reasons": reasons})
+    return selected
 
 
 def validate_evaluations(rows):
@@ -283,11 +343,34 @@ def validate_evaluations(rows):
         for candidate, expected in zip(row["candidates"], detected):
             if any(candidate[name] != value for name, value in expected.items()):
                 raise ValueError("Candidate span/claim differs from evaluated answer")
+            if (
+                candidate["source_exists"] is not None
+                or candidate["source_supports_claim"] is not None
+            ):
+                raise ValueError("Automated retrieval cannot establish source validity")
+            claims = candidate["claim_evaluations"]
+            if [c["claim"] for c in claims] != expected["claim_spans"]:
+                raise ValueError("Evaluated claims differ from associated claims")
+            for claim in claims:
+                if claim["retrieval_query"] != claim_query(claim["claim"]):
+                    raise ValueError("Retrieval query differs from associated claim")
+                scores = [item["score"] for item in claim["evidence"]]
+                if any(not math.isfinite(s) or not -1 <= s <= 1 for s in scores):
+                    raise ValueError("Invalid retrieval score")
+                maximum = max(scores, default=None)
+                flag = maximum is not None and maximum >= threshold
+                if (
+                    claim["max_cosine_similarity"] != maximum
+                    or claim["retrieval_match"] is not flag
+                ):
+                    raise ValueError("Claim judgment differs from evidence")
+            if candidate["evidence"] != [item for c in claims for item in c["evidence"]]:
+                raise ValueError("Candidate evidence differs from claim evidence")
             scores = [item["score"] for item in candidate["evidence"]]
             if any(not math.isfinite(score) or not -1 <= score <= 1 for score in scores):
                 raise ValueError("Invalid retrieval score")
             maximum = max(scores, default=None)
-            flag = maximum is not None and maximum >= threshold
+            _, flag = support_labels([c["retrieval_match"] for c in claims])
             if (
                 candidate["max_cosine_similarity"] != maximum
                 or candidate["retrieval_match"] is not flag
@@ -301,9 +384,12 @@ def validate_evaluations(rows):
         )
         if row["answer_status"] != status or row["citation_present"] is not bool(flags):
             raise ValueError("Invalid answer classification")
-        if row["any_retrieval_support"] is not (any(flags) if flags else None):
+        any_match, all_match = support_labels(flags)
+        if row["generation_issues"] != generation_issues(answer):
+            raise ValueError("Invalid generation quality flags")
+        if row["any_retrieval_support"] is not any_match:
             raise ValueError("Invalid any-candidate support label")
-        if row["all_candidate_retrieval_support"] is not (all(flags) if flags else None):
+        if row["all_candidate_retrieval_support"] is not all_match:
             raise ValueError("Invalid all-candidate support label")
     return rows
 
@@ -328,15 +414,32 @@ def merge_evaluations(before, corrected, expected_corrections):
         for name in ("detector_version", "threshold", "retriever_metadata"):
             if revision[name] != originals[identity][name]:
                 raise ValueError("Before/after verification configuration differs")
-    merged = [
-        {
-            "key": dict(zip(KEY, key(row))),
-            "was_corrected": key(row) in revisions,
-            "before": row,
-            "after": revisions.get(key(row), row),
-        }
-        for row in before
-    ]
+    merged = []
+    for row in before:
+        attempt = revisions.get(key(row))
+        reasons = list(attempt["generation_issues"]) if attempt else []
+        if attempt and row["citation_present"] and not attempt["citation_present"]:
+            reasons.append("lost_detected_citations")
+        if attempt and row["variant"] == "with_citation" and not attempt["citation_present"]:
+            reasons.append("requested_citation_still_missing")
+        if attempt and any(c["association_status"] == "unresolved" for c in attempt["candidates"]):
+            reasons.append("unresolved_claim_association")
+        if attempt and expected[key(row)].get("correction_diagnostics", {}).get("near_token_cap"):
+            reasons.append("possibly_truncated")
+        accepted = attempt is not None and not reasons
+        merged.append(
+            {
+                "key": dict(zip(KEY, key(row))),
+                "was_corrected": accepted,
+                "correction_attempted": attempt is not None,
+                "correction_accepted": accepted,
+                "acceptance_scope": "format/association guards only; factuality unknown",
+                "rejection_reasons": sorted(set(reasons)),
+                "attempted_after": attempt,
+                "before": row,
+                "after": attempt if accepted else row,
+            }
+        )
     if len(merged) != len(before):
         raise ValueError("Evaluation population changed")
     return merged
@@ -351,6 +454,17 @@ def summarize(rows):
     for (run_id, source, variant), group in sorted(groups.items()):
         cited = [row for row in group if row["citation_present"]]
         candidates = [item for row in group for item in row["candidates"]]
+        any_known = [
+            r["any_retrieval_support"] for r in cited if r["any_retrieval_support"] is not None
+        ]
+        all_known = [
+            r["all_candidate_retrieval_support"]
+            for r in cited
+            if r["all_candidate_retrieval_support"] is not None
+        ]
+        candidate_known = [
+            c["retrieval_match"] for c in candidates if c["retrieval_match"] is not None
+        ]
         output.append(
             {
                 "run_id": run_id,
@@ -363,22 +477,26 @@ def summarize(rows):
                 ),
                 "empty_answers": sum(row["answer_status"] == "empty_answer" for row in group),
                 "abstention_cues": sum(row["abstention_cue"] for row in group),
+                "generation_format_issues": sum(bool(row["generation_issues"]) for row in group),
+                "unresolved_candidate_count": len(candidates) - len(candidate_known),
+                "any_retrieval_evaluable_answers": len(any_known),
+                "all_retrieval_evaluable_answers": len(all_known),
+                "evaluable_candidate_count": len(candidate_known),
                 "citation_present_rate_all_answers": len(cited) / len(group),
                 "any_retrieval_support_rate_among_cited": (
-                    sum(row["any_retrieval_support"] for row in cited) / len(cited)
-                    if cited
-                    else None
+                    sum(any_known) / len(cited) if cited and len(any_known) == len(cited) else None
                 ),
                 "all_candidate_support_rate_among_cited": (
-                    sum(row["all_candidate_retrieval_support"] for row in cited) / len(cited)
-                    if cited
-                    else None
+                    sum(all_known) / len(cited) if cited and len(all_known) == len(cited) else None
                 ),
                 "candidate_count": len(candidates),
                 "candidate_retrieval_match_rate": (
-                    sum(item["retrieval_match"] for item in candidates) / len(candidates)
-                    if candidates
+                    sum(candidate_known) / len(candidates)
+                    if candidates and len(candidate_known) == len(candidates)
                     else None
+                ),
+                "candidate_match_rate_evaluable_only": (
+                    sum(candidate_known) / len(candidate_known) if candidate_known else None
                 ),
             }
         )
@@ -454,6 +572,10 @@ def transitions(merged):
     return {
         "responses": len(merged),
         "corrected": sum(row["was_corrected"] for row in merged),
+        "correction_attempts": sum(row["correction_attempted"] for row in merged),
+        "rejected_corrections": sum(
+            row["correction_attempted"] and not row["correction_accepted"] for row in merged
+        ),
         "answer_status_transitions": dict(counts),
         "proxy_transitions": proxy_transitions,
     }
