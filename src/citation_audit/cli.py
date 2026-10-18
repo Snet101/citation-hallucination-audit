@@ -148,7 +148,7 @@ def full_run(args, directory):
     write_jsonl(directory / "completions.jsonl", completions)
     baseline = evaluate(completions, retriever, args.threshold)
     write_jsonl(directory / "baseline-verification.jsonl", baseline)
-    selected = select_corrections(baseline)
+    selected = select_corrections(baseline, include_missing=args.correct_missing_citations)
     write_jsonl(directory / "selected.jsonl", selected)
     contexts = attach_context(selected, retriever)
     write_jsonl(directory / "contexts.jsonl", contexts)
@@ -169,7 +169,15 @@ def full_run(args, directory):
         directory / "bootstrap-correction.json",
         bootstrap_groups(merged, "citation_present", args.B, args.seed, correction=True),
     )
-    return {"responses": len(baseline), "corrected": len(corrected), "population_preserved": True}
+    return {
+        "responses": len(baseline),
+        "corrected": len(corrected),
+        "accepted_corrections": sum(r["correction_accepted"] for r in merged),
+        "rejected_corrections": sum(
+            r["correction_attempted"] and not r["correction_accepted"] for r in merged
+        ),
+        "population_preserved": True,
+    }
 
 
 def execute(args):
@@ -243,7 +251,7 @@ def execute(args):
             elif command == "correct":
                 output = correct(rows, make_generator(args))
             elif command == "select":
-                output = select_corrections(rows)
+                output = select_corrections(rows, include_missing=args.correct_missing_citations)
             else:
                 output = [
                     {**row, "detected_candidates": extract_candidates(row[args.answer_field])}
@@ -365,6 +373,12 @@ def parser():
             item.add_argument("--count", type=int, required=True)
         if name == "run":
             item.add_argument("--corpus", type=Path, required=True)
+        if name in {"run", "select"}:
+            item.add_argument(
+                "--correct-missing-citations",
+                action="store_true",
+                help="Opt in to correcting missing citations in the citation-requested condition; not a factuality label",
+            )
         if name == "audit-history":
             item.add_argument("--repo", type=Path, default=Path("."))
         if name == "merge":
