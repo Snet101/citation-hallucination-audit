@@ -134,3 +134,11 @@ Each command has `--help`, requires a **new** `--out` directory, and records pro
 The original filenames under `src/` and `analysis/` are now thin CLI adapters; they have no import-time model loading, downloads, plotting, or output writes. They no longer silently read or overwrite the historical artifacts. Their arguments have changed; run them with `--help` after installing the package.
 
 Optional plotting: `python -m pip install -e ".[plots]"`, then `python -m citation_audit plot --input runs/fixture-demo/summary-before.json --out runs/fixture-plot`. Plot labels use explicit proxy metric names, not hallucination-rate labels.
+
+## Historical paper
+
+The historical paper was intentionally removed and is not a current project
+deliverable. Its original fingerprint remains recorded for audit history.
+Preservation checks protect the seven retained historical result files and
+verify the paper's explicitly documented absence. See
+[paper retirement](docs/paper-retirement.md) for the policy and checks.

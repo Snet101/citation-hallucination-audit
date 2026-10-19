@@ -1,0 +1,10 @@
+{
+  "retired_files": [
+    {
+      "path": "citation_hallucination_audit.pdf",
+      "git_blob_oid": "f53c9431ee1496287866315c18c3f7c2bd90db2d",
+      "git_blob_sha256": "58a62947a4681100509ff177eb7a44386e744609615633f6394a0d1d27519904",
+      "reason": "The author intentionally removed the historical paper because its conclusions are not validated. It is not distributed as a current project deliverable."
+    }
+  ]
+}
